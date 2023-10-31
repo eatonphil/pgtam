@@ -15,19 +15,40 @@ PG_MODULE_MAGIC;
 struct Column {
   int value;
 };
+
 struct Row {
   struct Column* columns;
-  int ncolumns;
+  size_t ncolumns;
 };
+
+#define MAX_ROWS 100
 struct Table {
+  char* name;
   struct Row* rows;
-  int nrows;
+  size_t nrows;
 };
-struct Table* table;
+
+#define MAX_TABLES 100
+struct Database {
+  struct Table* tables;
+  size_t ntables;
+};
+
+struct Database* database;
 
 const TableAmRoutine memam_methods;
 
 #define DEBUG_FUNC() fprintf(fd, "in %s\n", __func__)
+
+void get_table(struct Table** table, Relation relation) {
+  char* this_name = NameStr(relation->rd_rel->relname);
+  for (size_t i = 0; i < database->ntables; i++) {
+    if (strcmp(database->tables[i].name, this_name) == 0) {
+      *table = &database->tables[i];
+      return;
+    }
+  }
+}
 
 const TupleTableSlotOps* memam_slot_callbacks(
   Relation relation
@@ -84,10 +105,11 @@ bool memam_getnextslot(
   TupleTableSlot *slot
 ) {
   DEBUG_FUNC();
-  //  backtrace();
   struct MemScanDesc* mscan = (struct MemScanDesc*)sscan;
   ExecClearTuple(slot);
 
+  struct Table* table = NULL;
+  get_table(&table, mscan->rs_base.rs_rd);
   if (table == NULL || mscan->cursor == table->nrows) {
     return false;
   }
@@ -128,19 +150,23 @@ void memam_tuple_insert(
   BulkInsertState bistate
 ) {
   DEBUG_FUNC();
+  TupleDesc desc = RelationGetDescr(relation);
 
+  struct Table* table = NULL;
+  get_table(&table, relation);
   if (table == NULL) {
-    table = (struct Table*)malloc(sizeof(struct Table));
-    table->nrows = 0;
-    table->rows = (struct Row*)malloc(sizeof(struct Row) * 100);
+    elog(ERROR, "table not found");
+    return;
   }
 
-  slot->tts_ops->materialize(slot);
+  if (table->nrows == MAX_ROWS) {
+    elog(ERROR, "cannot insert more rows");
+    return;
+  }
 
   struct Column column = {0};
   struct Row row = {0};
 
-  TupleDesc desc = RelationGetDescr(relation);
   row.ncolumns = desc->natts;
   Assert(slot->tts_nvalid == row.ncolumns);
   Assert(row.ncolumns > 0);
@@ -280,6 +306,14 @@ void memam_relation_set_new_filelocator(
   TransactionId *freezeXid,
   MultiXactId *minmulti
 ) {
+  struct Table table;
+  table.name = strdup(NameStr(rel->rd_rel->relname));
+  fprintf(fd, "Created table: [%s]\n", table.name);
+  table.rows = (struct Row*)malloc(sizeof(struct Row) * MAX_ROWS);
+  table.nrows = 0;
+
+  database->tables[database->ntables] = table;
+  database->ntables++;
   DEBUG_FUNC();
 }
 
@@ -474,6 +508,12 @@ Datum mem_tableam_handler(PG_FUNCTION_ARGS) {
   fd = fopen("/tmp/pgtam.log", "a");
   setvbuf(fd, NULL, _IONBF, 0);
   fprintf(fd, "\n\nmem_tableam handler loaded\n");
+
+  if (database == NULL) {
+    database = (struct Database*)malloc(sizeof(struct Database));
+    database->ntables = 0;
+    database->tables = (struct Table*)malloc(sizeof(struct Table) * MAX_TABLES);
+  }
 
   PG_RETURN_POINTER(&memam_methods);
 }
