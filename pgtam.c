@@ -8,15 +8,15 @@
 
 PG_MODULE_MAGIC;
 
-static const TableAmRoutine memam_methods;
+const TableAmRoutine memam_methods;
 
-static const TupleTableSlotOps* memam_slot_callbacks(
+const TupleTableSlotOps* memam_slot_callbacks(
   Relation relation
 ) {
-  return NULL;
+  return &TTSOpsBufferHeapTuple;
 }
 
-static TableScanDesc mem_beginscan(
+TableScanDesc memam_beginscan(
   Relation relation,
   Snapshot snapshot,
   int nkeys,
@@ -25,7 +25,7 @@ static TableScanDesc mem_beginscan(
   uint32 flags
 ) {}
 
-static void mem_rescan(
+void memam_rescan(
   TableScanDesc sscan,
   struct ScanKeyData *key,
   bool set_params,
@@ -34,9 +34,9 @@ static void mem_rescan(
   bool allow_pagemode
 ) {}
 
-static void mem_endscan(TableScanDesc sscan) {}
+void memam_endscan(TableScanDesc sscan) {}
 
-static bool mem_getnextslot(
+bool memam_getnextslot(
   TableScanDesc sscan,
   ScanDirection direction,
   TupleTableSlot *slot
@@ -44,45 +44,15 @@ static bool mem_getnextslot(
   return false;
 }
 
-static void mem_set_tidrange(
-  TableScanDesc sscan,
-  ItemPointer mintid,
-  ItemPointer maxtid
-) {}
-
-static bool mem_getnextslot_tidrange(
-  TableScanDesc sscan,
-  ScanDirection direction,
-  TupleTableSlot *slot
-) {
-  return false;
-}
-
-/* static Size table_block_parallelscan_estimate(Relation rel) { */
-/*   return 0; */
-/* } */
-
-/* static Size table_block_parallelscan_initialize( */
-/*   Relation rel, */
-/*   ParallelTableScanDesc pscan */
-/* ) { */
-/*   return 0; */
-/* } */
-
-/* static void table_block_parallelscan_reinitialize( */
-/*   Relation rel, */
-/*   ParallelTableScanDesc pscan */
-/* ) {} */
-
-static IndexFetchTableData* mem_index_fetch_begin(Relation rel) {
+IndexFetchTableData* memam_index_fetch_begin(Relation rel) {
   return NULL;
 }
 
-static void mem_index_fetch_reset(IndexFetchTableData *scan) {}
+void memam_index_fetch_reset(IndexFetchTableData *scan) {}
 
-static void mem_index_fetch_end(IndexFetchTableData *scan) {}
+void memam_index_fetch_end(IndexFetchTableData *scan) {}
 
-static bool mem_index_fetch_tuple(
+bool memam_index_fetch_tuple(
   struct IndexFetchTableData *scan,
   ItemPointer tid,
   Snapshot snapshot,
@@ -91,7 +61,7 @@ static bool mem_index_fetch_tuple(
   bool *all_dead
 ) {}
 
-static void mem_tuple_insert(
+void memam_tuple_insert(
   Relation relation,
   TupleTableSlot *slot,
   CommandId cid,
@@ -99,7 +69,7 @@ static void mem_tuple_insert(
   BulkInsertState bistate
 ) {}
 
-static void mem_tuple_insert_speculative(
+void memam_tuple_insert_speculative(
   Relation relation,
   TupleTableSlot *slot,
   CommandId cid,
@@ -107,13 +77,13 @@ static void mem_tuple_insert_speculative(
   BulkInsertState bistate,
   uint32 specToken) {}
 
-static void mem_tuple_complete_speculative(
+void memam_tuple_complete_speculative(
   Relation relation,
   TupleTableSlot *slot,
   uint32 specToken,
   bool succeeded) {}
 
-static void mem_multi_insert(
+void memam_multi_insert(
   Relation relation,
   TupleTableSlot **slots,
   int ntuples,
@@ -122,7 +92,7 @@ static void mem_multi_insert(
   BulkInsertState bistate
 ) {}
 
-static TM_Result mem_tuple_delete(
+TM_Result memam_tuple_delete(
   Relation relation,
   ItemPointer tid,
   CommandId cid,
@@ -136,7 +106,7 @@ static TM_Result mem_tuple_delete(
   return result;
 }
 
-static TM_Result mem_tuple_update(
+TM_Result memam_tuple_update(
   Relation relation,
   ItemPointer otid,
   TupleTableSlot *slot,
@@ -152,7 +122,7 @@ static TM_Result mem_tuple_update(
   return result;
 }
 
-static TM_Result mem_tuple_lock(
+TM_Result memam_tuple_lock(
   Relation relation,
   ItemPointer tid,
   Snapshot snapshot,
@@ -167,7 +137,7 @@ static TM_Result mem_tuple_lock(
   return result;
 }
 
-static bool mem_fetch_row_version(
+bool memam_fetch_row_version(
   Relation relation,
   ItemPointer tid,
   Snapshot snapshot,
@@ -176,16 +146,16 @@ static bool mem_fetch_row_version(
   return false;
 }
 
-static void mem_get_latest_tid(
+void memam_get_latest_tid(
   TableScanDesc sscan,
   ItemPointer tid
 ) {}
 
-static bool mem_tuple_tid_valid(TableScanDesc scan, ItemPointer tid) {
+bool memam_tuple_tid_valid(TableScanDesc scan, ItemPointer tid) {
   return false;
 }
 
-static bool mem_tuple_satisfies_snapshot(
+bool memam_tuple_satisfies_snapshot(
   Relation rel,
   TupleTableSlot *slot,
   Snapshot snapshot
@@ -193,7 +163,7 @@ static bool mem_tuple_satisfies_snapshot(
   return false;
 }
 
-static TransactionId mem_index_delete_tuples(
+TransactionId memam_index_delete_tuples(
   Relation rel,
   TM_IndexDeleteOp *delstate
 ) {
@@ -201,7 +171,7 @@ static TransactionId mem_index_delete_tuples(
   return id;
 }
 
-static void mem_relation_set_new_filelocator(
+void memam_relation_set_new_filelocator(
   Relation rel,
   const RelFileLocator *newrlocator,
   char persistence,
@@ -209,16 +179,16 @@ static void mem_relation_set_new_filelocator(
   MultiXactId *minmulti
 ) {}
 
-static void mem_relation_nontransactional_truncate(
+void memam_relation_nontransactional_truncate(
   Relation rel
 ) {}
 
-static void mem_relation_copy_data(
+void memam_relation_copy_data(
   Relation rel,
   const RelFileLocator *newrlocator
 ) {}
 
-static void mem_relation_copy_for_cluster(
+void memam_relation_copy_for_cluster(
   Relation OldHeap,
   Relation NewHeap,
   Relation OldIndex,
@@ -231,13 +201,13 @@ static void mem_relation_copy_for_cluster(
   double *tups_recently_dead
 ) {}
 
-static void mem_vacuum_rel(
+void memam_vacuum_rel(
   Relation rel,
   VacuumParams *params,
   BufferAccessStrategy bstrategy
 ) {}
 
-static bool mem_scan_analyze_next_block(
+bool memam_scan_analyze_next_block(
   TableScanDesc scan,
   BlockNumber blockno,
   BufferAccessStrategy bstrategy
@@ -245,7 +215,7 @@ static bool mem_scan_analyze_next_block(
   return false;
 }
 
-static bool mem_scan_analyze_next_tuple(
+bool memam_scan_analyze_next_tuple(
   TableScanDesc scan,
   TransactionId OldestXmin,
   double *liverows,
@@ -255,7 +225,7 @@ static bool mem_scan_analyze_next_tuple(
   return false;
 }
 
-static double mem_index_build_range_scan(
+double memam_index_build_range_scan(
   Relation heapRelation,
   Relation indexRelation,
   IndexInfo *indexInfo,
@@ -271,7 +241,7 @@ static double mem_index_build_range_scan(
   return 0;
 }
 
-static void mem_index_validate_scan(
+void memam_index_validate_scan(
   Relation heapRelation,
   Relation indexRelation,
   IndexInfo *indexInfo,
@@ -279,23 +249,16 @@ static void mem_index_validate_scan(
   ValidateIndexState *state
 ) {}
 
-/* static uint64 table_block_relation_size( */
-/*   Relation rel, */
-/*   ForkNumber forkNumber */
-/* ) { */
-/*   return 0; */
-/* } */
-
-static bool mem_relation_needs_toast_table(Relation rel) {
+bool memam_relation_needs_toast_table(Relation rel) {
   return false;
 }
 
-static Oid mem_relation_toast_am(Relation rel) {
+Oid memam_relation_toast_am(Relation rel) {
   Oid oid;
   return oid;
 }
 
-static void mem_fetch_toast_slice(
+void memam_fetch_toast_slice(
   Relation toastrel,
   Oid valueid,
   int32 attrsize,
@@ -304,7 +267,7 @@ static void mem_fetch_toast_slice(
   struct varlena *result
 ) {}
 
-static void mem_estimate_rel_size(
+void memam_estimate_rel_size(
   Relation rel,
   int32 *attr_widths,
   BlockNumber *pages,
@@ -312,28 +275,13 @@ static void mem_estimate_rel_size(
   double *allvisfrac
 ) {}
 
-static bool mem_scan_bitmap_next_block(
-  TableScanDesc scan,
-  TBMIterateResult *tbmres
-) {
-  return false;
-}
-
-static bool mem_scan_bitmap_next_tuple(
-  TableScanDesc scan,
-  TBMIterateResult *tbmres,
-  TupleTableSlot *slot
-) {
-  return false;
-}
-
-static bool mem_scan_sample_next_block(
+bool memam_scan_sample_next_block(
   TableScanDesc scan, SampleScanState *scanstate
 ) {
   return false;
 }
 
-static bool mem_scan_sample_next_tuple(
+bool memam_scan_sample_next_tuple(
   TableScanDesc scan,
   SampleScanState *scanstate,
   TupleTableSlot *slot
@@ -341,63 +289,58 @@ static bool mem_scan_sample_next_tuple(
   return false;
 }
 
-static const TableAmRoutine memam_methods = {
+const TableAmRoutine memam_methods = {
   .type = T_TableAmRoutine,
 
   .slot_callbacks = memam_slot_callbacks,
 
-  .scan_begin = mem_beginscan,
-  .scan_end = mem_endscan,
-  .scan_rescan = mem_rescan,
-  .scan_getnextslot = mem_getnextslot,
-
-  .scan_set_tidrange = mem_set_tidrange,
-  .scan_getnextslot_tidrange = mem_getnextslot_tidrange,
+  .scan_begin = memam_beginscan,
+  .scan_end = memam_endscan,
+  .scan_rescan = memam_rescan,
+  .scan_getnextslot = memam_getnextslot,
 
   .parallelscan_estimate = table_block_parallelscan_estimate,
   .parallelscan_initialize = table_block_parallelscan_initialize,
   .parallelscan_reinitialize = table_block_parallelscan_reinitialize,
 
-  .index_fetch_begin = mem_index_fetch_begin,
-  .index_fetch_reset = mem_index_fetch_reset,
-  .index_fetch_end = mem_index_fetch_end,
-  .index_fetch_tuple = mem_index_fetch_tuple,
+  .index_fetch_begin = memam_index_fetch_begin,
+  .index_fetch_reset = memam_index_fetch_reset,
+  .index_fetch_end = memam_index_fetch_end,
+  .index_fetch_tuple = memam_index_fetch_tuple,
 
-  .tuple_insert = mem_tuple_insert,
-  .tuple_insert_speculative = mem_tuple_insert_speculative,
-  .tuple_complete_speculative = mem_tuple_complete_speculative,
-  .multi_insert = mem_multi_insert,
-  .tuple_delete = mem_tuple_delete,
-  .tuple_update = mem_tuple_update,
-  .tuple_lock = mem_tuple_lock,
+  .tuple_insert = memam_tuple_insert,
+  .tuple_insert_speculative = memam_tuple_insert_speculative,
+  .tuple_complete_speculative = memam_tuple_complete_speculative,
+  .multi_insert = memam_multi_insert,
+  .tuple_delete = memam_tuple_delete,
+  .tuple_update = memam_tuple_update,
+  .tuple_lock = memam_tuple_lock,
 
-  .tuple_fetch_row_version = mem_fetch_row_version,
-  .tuple_get_latest_tid = mem_get_latest_tid,
-  .tuple_tid_valid = mem_tuple_tid_valid,
-  .tuple_satisfies_snapshot = mem_tuple_satisfies_snapshot,
-  .index_delete_tuples = mem_index_delete_tuples,
+  .tuple_fetch_row_version = memam_fetch_row_version,
+  .tuple_get_latest_tid = memam_get_latest_tid,
+  .tuple_tid_valid = memam_tuple_tid_valid,
+  .tuple_satisfies_snapshot = memam_tuple_satisfies_snapshot,
+  .index_delete_tuples = memam_index_delete_tuples,
 
-  .relation_set_new_filelocator = mem_relation_set_new_filelocator,
-  .relation_nontransactional_truncate = mem_relation_nontransactional_truncate,
-  .relation_copy_data = mem_relation_copy_data,
-  .relation_copy_for_cluster = mem_relation_copy_for_cluster,
-  .relation_vacuum = mem_vacuum_rel,
-  .scan_analyze_next_block = mem_scan_analyze_next_block,
-  .scan_analyze_next_tuple = mem_scan_analyze_next_tuple,
-  .index_build_range_scan = mem_index_build_range_scan,
-  .index_validate_scan = mem_index_validate_scan,
+  .relation_set_new_filelocator = memam_relation_set_new_filelocator,
+  .relation_nontransactional_truncate = memam_relation_nontransactional_truncate,
+  .relation_copy_data = memam_relation_copy_data,
+  .relation_copy_for_cluster = memam_relation_copy_for_cluster,
+  .relation_vacuum = memam_vacuum_rel,
+  .scan_analyze_next_block = memam_scan_analyze_next_block,
+  .scan_analyze_next_tuple = memam_scan_analyze_next_tuple,
+  .index_build_range_scan = memam_index_build_range_scan,
+  .index_validate_scan = memam_index_validate_scan,
 
   .relation_size = table_block_relation_size,
-  .relation_needs_toast_table = mem_relation_needs_toast_table,
-  .relation_toast_am = mem_relation_toast_am,
-  .relation_fetch_toast_slice = mem_fetch_toast_slice,
+  .relation_needs_toast_table = memam_relation_needs_toast_table,
+  .relation_toast_am = memam_relation_toast_am,
+  .relation_fetch_toast_slice = memam_fetch_toast_slice,
 
-  .relation_estimate_size = mem_estimate_rel_size,
+  .relation_estimate_size = memam_estimate_rel_size,
 
-  .scan_bitmap_next_block = mem_scan_bitmap_next_block,
-  .scan_bitmap_next_tuple = mem_scan_bitmap_next_tuple,
-  .scan_sample_next_block = mem_scan_sample_next_block,
-  .scan_sample_next_tuple = mem_scan_sample_next_tuple
+  .scan_sample_next_block = memam_scan_sample_next_block,
+  .scan_sample_next_tuple = memam_scan_sample_next_tuple
 };
 
 PG_FUNCTION_INFO_V1(mem_tableam_handler);
