@@ -6,39 +6,9 @@
 #include "catalog/index.h"
 #include "commands/vacuum.h"
 #include "utils/builtins.h"
-
-#define UNW_LOCAL_ONLY
-#include <libunwind.h>
+#include "executor/tuptable.h"
 
 FILE* fd;
-void backtrace()
-{
-  unw_cursor_t cursor;
-  unw_context_t context;
-
-  // grab the machine context and initialize the cursor
-  if (unw_getcontext(&context) < 0)
-    die("ERROR: cannot get local machine state\n");
-  if (unw_init_local(&cursor, &context) < 0)
-    die("ERROR: cannot initialize cursor for local unwinding\n");
-
-
-  // currently the IP is within backtrace() itself so this loop
-  // deliberately skips the first frame.
-  while (unw_step(&cursor) > 0) {
-    unw_word_t offset, pc;
-    char sym[4096];
-    if (unw_get_reg(&cursor, UNW_REG_IP, &pc))
-      die("ERROR: cannot read program counter\n");
-
-    fprintf(fd, "0x%lx: ", pc);
-
-    if (unw_get_proc_name(&cursor, sym, sizeof(sym), &offset) == 0)
-      fprintf(fd, "(%s+0x%lx)\n", sym, offset);
-    else
-      fprintf(fd, "-- no symbol name found\n");
-  }
-}
 
 PG_MODULE_MAGIC;
 
@@ -63,7 +33,7 @@ const TupleTableSlotOps* memam_slot_callbacks(
   Relation relation
 ) {
   DEBUG_FUNC();
-  return &TTSOpsBufferHeapTuple;
+  return &TTSOpsVirtual;
 }
 
 struct MemScanDesc {
@@ -118,17 +88,14 @@ bool memam_getnextslot(
   struct MemScanDesc* mscan = (struct MemScanDesc*)sscan;
   ExecClearTuple(slot);
 
-  if (mscan->cursor == table->nrows) {
-    fprintf(fd, "done\n");
+  if (table == NULL || mscan->cursor == table->nrows) {
     return false;
   }
 
   slot->tts_values[0] = Int32GetDatum(table->rows[mscan->cursor].columns[0].value);
-  fprintf(fd, "value: %d\n", DatumGetInt32(slot->tts_values[0]));
   slot->tts_isnull[0] = false;
   ExecStoreVirtualTuple(slot);
   mscan->cursor++;
-  fprintf(fd, "cursor: %d, table rows: %d\n", mscan->cursor, table->nrows);
   return true;
 }
 
@@ -161,6 +128,32 @@ void memam_tuple_insert(
   BulkInsertState bistate
 ) {
   DEBUG_FUNC();
+
+  if (table == NULL) {
+    table = (struct Table*)malloc(sizeof(struct Table));
+    table->nrows = 0;
+    table->rows = (struct Row*)malloc(sizeof(struct Row) * 100);
+  }
+
+  slot->tts_ops->materialize(slot);
+
+  struct Column column = {0};
+  struct Row row = {0};
+
+  TupleDesc desc = RelationGetDescr(relation);
+  row.ncolumns = desc->natts;
+  Assert(slot->tts_nvalid == row.ncolumns);
+  Assert(row.ncolumns > 0);
+
+  row.columns = (struct Column*)malloc(sizeof(struct Column) * row.ncolumns);
+  for (size_t i = 0; i < row.ncolumns; i++) {
+    Assert(desc->attrs[i].atttypid == INT4OID);
+    column.value = DatumGetInt32(slot->tts_values[i]);
+    row.columns[i] = column;
+  }
+
+  table->rows[table->nrows] = row;
+  table->nrows++;
 }
 
 void memam_tuple_insert_speculative(
@@ -482,24 +475,5 @@ Datum mem_tableam_handler(PG_FUNCTION_ARGS) {
   setvbuf(fd, NULL, _IONBF, 0);
   fprintf(fd, "\n\nmem_tableam handler loaded\n");
 
-  if (table == NULL) {
-    struct Column row1_column, row2_column;
-    row1_column.value = 319;
-    row2_column.value = 1823;
-
-    struct Row row1, row2;
-    row1.ncolumns = 1;
-    row1.columns = (struct Column*)malloc(sizeof(struct Column) * row1.ncolumns);
-    row1.columns[0] = row1_column;
-    row2.ncolumns = 1;
-    row2.columns = (struct Column*)malloc(sizeof(struct Column) * row2.ncolumns);
-    row2.columns[0] = row2_column;
-
-    table = (struct Table*)malloc(sizeof(struct Table));
-    table->nrows = 2;
-    table->rows = (struct Row*)malloc(sizeof(struct Row) * table->nrows);
-    table->rows[0] = row1;
-    table->rows[1] = row2;
-  }
   PG_RETURN_POINTER(&memam_methods);
 }
