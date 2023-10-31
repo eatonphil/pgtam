@@ -1,5 +1,5 @@
 #include "postgres.h"
-#include "fmgr.h" // For PG_GETARG_INT32
+#include "fmgr.h"
 #include "access/tableam.h"
 #include "access/heapam.h"
 #include "nodes/execnodes.h"
@@ -8,11 +8,18 @@
 
 PG_MODULE_MAGIC;
 
+static FILE* fd;
+
 const TableAmRoutine memam_methods;
+
+#define DEBUG_PREFIX "in "
+#define DEBUG_SUFFIX "\n"
+#define DEBUG_FUNC() fprintf(fd, "in %s\n", __func__); fsync(fd)
 
 const TupleTableSlotOps* memam_slot_callbacks(
   Relation relation
 ) {
+  DEBUG_FUNC();
   return &TTSOpsBufferHeapTuple;
 }
 
@@ -23,7 +30,9 @@ TableScanDesc memam_beginscan(
   struct ScanKeyData *key,
   ParallelTableScanDesc parallel_scan,
   uint32 flags
-) {}
+) {
+  DEBUG_FUNC();
+}
 
 void memam_rescan(
   TableScanDesc sscan,
@@ -32,19 +41,25 @@ void memam_rescan(
   bool allow_strat,
   bool allow_sync,
   bool allow_pagemode
-) {}
+) {
+  DEBUG_FUNC();
+}
 
-void memam_endscan(TableScanDesc sscan) {}
+void memam_endscan(TableScanDesc sscan) {
+  DEBUG_FUNC(); 
+}
 
 bool memam_getnextslot(
   TableScanDesc sscan,
   ScanDirection direction,
   TupleTableSlot *slot
 ) {
+  DEBUG_FUNC();
   return false;
 }
 
 IndexFetchTableData* memam_index_fetch_begin(Relation rel) {
+  DEBUG_FUNC(); 
   return NULL;
 }
 
@@ -59,7 +74,9 @@ bool memam_index_fetch_tuple(
   TupleTableSlot *slot,
   bool *call_again,
   bool *all_dead
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 void memam_tuple_insert(
   Relation relation,
@@ -67,7 +84,9 @@ void memam_tuple_insert(
   CommandId cid,
   int options,
   BulkInsertState bistate
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 void memam_tuple_insert_speculative(
   Relation relation,
@@ -75,13 +94,17 @@ void memam_tuple_insert_speculative(
   CommandId cid,
   int options,
   BulkInsertState bistate,
-  uint32 specToken) {}
+  uint32 specToken) {
+  DEBUG_FUNC(); 
+}
 
 void memam_tuple_complete_speculative(
   Relation relation,
   TupleTableSlot *slot,
   uint32 specToken,
-  bool succeeded) {}
+  bool succeeded) {
+  DEBUG_FUNC(); 
+}
 
 void memam_multi_insert(
   Relation relation,
@@ -90,7 +113,9 @@ void memam_multi_insert(
   CommandId cid,
   int options,
   BulkInsertState bistate
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 TM_Result memam_tuple_delete(
   Relation relation,
@@ -102,6 +127,7 @@ TM_Result memam_tuple_delete(
   TM_FailureData *tmfd,
   bool changingPart
 ) {
+  DEBUG_FUNC(); 
   TM_Result result;
   return result;
 }
@@ -118,6 +144,7 @@ TM_Result memam_tuple_update(
   LockTupleMode *lockmode,
   TU_UpdateIndexes *update_indexes
 ) {
+  DEBUG_FUNC(); 
   TM_Result result;
   return result;
 }
@@ -133,6 +160,7 @@ TM_Result memam_tuple_lock(
   uint8 flags,
   TM_FailureData *tmfd)
 {
+  DEBUG_FUNC(); 
   TM_Result result;
   return result;
 }
@@ -143,15 +171,19 @@ bool memam_fetch_row_version(
   Snapshot snapshot,
   TupleTableSlot *slot
 ) {
+  DEBUG_FUNC(); 
   return false;
 }
 
 void memam_get_latest_tid(
   TableScanDesc sscan,
   ItemPointer tid
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 bool memam_tuple_tid_valid(TableScanDesc scan, ItemPointer tid) {
+  DEBUG_FUNC(); 
   return false;
 }
 
@@ -160,6 +192,7 @@ bool memam_tuple_satisfies_snapshot(
   TupleTableSlot *slot,
   Snapshot snapshot
 ) {
+  DEBUG_FUNC(); 
   return false;
 }
 
@@ -167,6 +200,7 @@ TransactionId memam_index_delete_tuples(
   Relation rel,
   TM_IndexDeleteOp *delstate
 ) {
+  DEBUG_FUNC(); 
   TransactionId id;
   return id;
 }
@@ -177,16 +211,22 @@ void memam_relation_set_new_filelocator(
   char persistence,
   TransactionId *freezeXid,
   MultiXactId *minmulti
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 void memam_relation_nontransactional_truncate(
   Relation rel
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 void memam_relation_copy_data(
   Relation rel,
   const RelFileLocator *newrlocator
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 void memam_relation_copy_for_cluster(
   Relation OldHeap,
@@ -199,19 +239,24 @@ void memam_relation_copy_for_cluster(
   double *num_tuples,
   double *tups_vacuumed,
   double *tups_recently_dead
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 void memam_vacuum_rel(
   Relation rel,
   VacuumParams *params,
   BufferAccessStrategy bstrategy
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 bool memam_scan_analyze_next_block(
   TableScanDesc scan,
   BlockNumber blockno,
   BufferAccessStrategy bstrategy
 ) {
+  DEBUG_FUNC(); 
   return false;
 }
 
@@ -222,6 +267,7 @@ bool memam_scan_analyze_next_tuple(
   double *deadrows,
   TupleTableSlot *slot
 ) {
+  DEBUG_FUNC(); 
   return false;
 }
 
@@ -238,6 +284,7 @@ double memam_index_build_range_scan(
   void *callback_state,
   TableScanDesc scan
 ) {
+  DEBUG_FUNC(); 
   return 0;
 }
 
@@ -247,13 +294,17 @@ void memam_index_validate_scan(
   IndexInfo *indexInfo,
   Snapshot snapshot,
   ValidateIndexState *state
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 bool memam_relation_needs_toast_table(Relation rel) {
+  DEBUG_FUNC(); 
   return false;
 }
 
 Oid memam_relation_toast_am(Relation rel) {
+  DEBUG_FUNC(); 
   Oid oid;
   return oid;
 }
@@ -265,7 +316,9 @@ void memam_fetch_toast_slice(
   int32 sliceoffset,
   int32 slicelength,
   struct varlena *result
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 void memam_estimate_rel_size(
   Relation rel,
@@ -273,11 +326,14 @@ void memam_estimate_rel_size(
   BlockNumber *pages,
   double *tuples,
   double *allvisfrac
-) {}
+) {
+  DEBUG_FUNC(); 
+}
 
 bool memam_scan_sample_next_block(
   TableScanDesc scan, SampleScanState *scanstate
 ) {
+  DEBUG_FUNC();
   return false;
 }
 
@@ -286,6 +342,7 @@ bool memam_scan_sample_next_tuple(
   SampleScanState *scanstate,
   TupleTableSlot *slot
 ) {
+  DEBUG_FUNC(); 
   return false;
 }
 
@@ -346,5 +403,7 @@ const TableAmRoutine memam_methods = {
 PG_FUNCTION_INFO_V1(mem_tableam_handler);
 
 Datum mem_tableam_handler(PG_FUNCTION_ARGS) {
+  fd = fopen("/tmp/pgtam.log", "a");
+  setvbuf(fd, NULL, _IONBF, 0);
   PG_RETURN_POINTER(&memam_methods);
 }
