@@ -32,6 +32,9 @@ TableScanDesc memam_beginscan(
   uint32 flags
 ) {
   DEBUG_FUNC();
+  TableScanDesc desc = (TableScanDescData*)malloc(sizeof(TableScanDescData));
+  desc->rs_rd = relation;
+  return desc;
 }
 
 void memam_rescan(
@@ -46,7 +49,8 @@ void memam_rescan(
 }
 
 void memam_endscan(TableScanDesc sscan) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
+  free(sscan);
 }
 
 bool memam_getnextslot(
@@ -59,7 +63,7 @@ bool memam_getnextslot(
 }
 
 IndexFetchTableData* memam_index_fetch_begin(Relation rel) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return NULL;
 }
 
@@ -75,7 +79,7 @@ bool memam_index_fetch_tuple(
   bool *call_again,
   bool *all_dead
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_tuple_insert(
@@ -85,7 +89,7 @@ void memam_tuple_insert(
   int options,
   BulkInsertState bistate
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_tuple_insert_speculative(
@@ -95,7 +99,7 @@ void memam_tuple_insert_speculative(
   int options,
   BulkInsertState bistate,
   uint32 specToken) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_tuple_complete_speculative(
@@ -103,7 +107,7 @@ void memam_tuple_complete_speculative(
   TupleTableSlot *slot,
   uint32 specToken,
   bool succeeded) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_multi_insert(
@@ -114,7 +118,7 @@ void memam_multi_insert(
   int options,
   BulkInsertState bistate
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 TM_Result memam_tuple_delete(
@@ -127,7 +131,7 @@ TM_Result memam_tuple_delete(
   TM_FailureData *tmfd,
   bool changingPart
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   TM_Result result;
   return result;
 }
@@ -144,7 +148,7 @@ TM_Result memam_tuple_update(
   LockTupleMode *lockmode,
   TU_UpdateIndexes *update_indexes
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   TM_Result result;
   return result;
 }
@@ -160,7 +164,7 @@ TM_Result memam_tuple_lock(
   uint8 flags,
   TM_FailureData *tmfd)
 {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   TM_Result result;
   return result;
 }
@@ -171,7 +175,7 @@ bool memam_fetch_row_version(
   Snapshot snapshot,
   TupleTableSlot *slot
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return false;
 }
 
@@ -179,11 +183,11 @@ void memam_get_latest_tid(
   TableScanDesc sscan,
   ItemPointer tid
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 bool memam_tuple_tid_valid(TableScanDesc scan, ItemPointer tid) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return false;
 }
 
@@ -192,7 +196,7 @@ bool memam_tuple_satisfies_snapshot(
   TupleTableSlot *slot,
   Snapshot snapshot
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return false;
 }
 
@@ -200,7 +204,7 @@ TransactionId memam_index_delete_tuples(
   Relation rel,
   TM_IndexDeleteOp *delstate
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   TransactionId id;
   return id;
 }
@@ -212,20 +216,20 @@ void memam_relation_set_new_filelocator(
   TransactionId *freezeXid,
   MultiXactId *minmulti
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_relation_nontransactional_truncate(
   Relation rel
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_relation_copy_data(
   Relation rel,
   const RelFileLocator *newrlocator
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_relation_copy_for_cluster(
@@ -240,7 +244,7 @@ void memam_relation_copy_for_cluster(
   double *tups_vacuumed,
   double *tups_recently_dead
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_vacuum_rel(
@@ -248,7 +252,7 @@ void memam_vacuum_rel(
   VacuumParams *params,
   BufferAccessStrategy bstrategy
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 bool memam_scan_analyze_next_block(
@@ -256,7 +260,7 @@ bool memam_scan_analyze_next_block(
   BlockNumber blockno,
   BufferAccessStrategy bstrategy
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return false;
 }
 
@@ -267,7 +271,7 @@ bool memam_scan_analyze_next_tuple(
   double *deadrows,
   TupleTableSlot *slot
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return false;
 }
 
@@ -284,7 +288,7 @@ double memam_index_build_range_scan(
   void *callback_state,
   TableScanDesc scan
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return 0;
 }
 
@@ -295,16 +299,16 @@ void memam_index_validate_scan(
   Snapshot snapshot,
   ValidateIndexState *state
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 bool memam_relation_needs_toast_table(Relation rel) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return false;
 }
 
 Oid memam_relation_toast_am(Relation rel) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   Oid oid;
   return oid;
 }
@@ -317,7 +321,7 @@ void memam_fetch_toast_slice(
   int32 slicelength,
   struct varlena *result
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 void memam_estimate_rel_size(
@@ -327,7 +331,7 @@ void memam_estimate_rel_size(
   double *tuples,
   double *allvisfrac
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
 }
 
 bool memam_scan_sample_next_block(
@@ -342,7 +346,7 @@ bool memam_scan_sample_next_tuple(
   SampleScanState *scanstate,
   TupleTableSlot *slot
 ) {
-  DEBUG_FUNC(); 
+  DEBUG_FUNC();
   return false;
 }
 
@@ -405,5 +409,6 @@ PG_FUNCTION_INFO_V1(mem_tableam_handler);
 Datum mem_tableam_handler(PG_FUNCTION_ARGS) {
   fd = fopen("/tmp/pgtam.log", "a");
   setvbuf(fd, NULL, _IONBF, 0);
+  fprintf(fd, "\n\nmem_tableam handler loaded\n");
   PG_RETURN_POINTER(&memam_methods);
 }
