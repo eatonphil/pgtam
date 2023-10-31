@@ -5,16 +5,59 @@
 #include "nodes/execnodes.h"
 #include "catalog/index.h"
 #include "commands/vacuum.h"
+#include "utils/builtins.h"
+
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+
+FILE* fd;
+void backtrace()
+{
+  unw_cursor_t cursor;
+  unw_context_t context;
+
+  // grab the machine context and initialize the cursor
+  if (unw_getcontext(&context) < 0)
+    die("ERROR: cannot get local machine state\n");
+  if (unw_init_local(&cursor, &context) < 0)
+    die("ERROR: cannot initialize cursor for local unwinding\n");
+
+
+  // currently the IP is within backtrace() itself so this loop
+  // deliberately skips the first frame.
+  while (unw_step(&cursor) > 0) {
+    unw_word_t offset, pc;
+    char sym[4096];
+    if (unw_get_reg(&cursor, UNW_REG_IP, &pc))
+      die("ERROR: cannot read program counter\n");
+
+    fprintf(fd, "0x%lx: ", pc);
+
+    if (unw_get_proc_name(&cursor, sym, sizeof(sym), &offset) == 0)
+      fprintf(fd, "(%s+0x%lx)\n", sym, offset);
+    else
+      fprintf(fd, "-- no symbol name found\n");
+  }
+}
 
 PG_MODULE_MAGIC;
 
-static FILE* fd;
+struct Column {
+  int value;
+};
+struct Row {
+  struct Column* columns;
+  int ncolumns;
+};
+struct Table {
+  struct Row* rows;
+  int nrows;
+};
+struct Table* table;
 
 const TableAmRoutine memam_methods;
 
-#define DEBUG_PREFIX "in "
-#define DEBUG_SUFFIX "\n"
-#define DEBUG_FUNC() fprintf(fd, "in %s\n", __func__); fsync(fd)
+#define DEBUG_FUNC() fprintf(fd, "in %s\n", __func__)
 
 const TupleTableSlotOps* memam_slot_callbacks(
   Relation relation
@@ -22,6 +65,13 @@ const TupleTableSlotOps* memam_slot_callbacks(
   DEBUG_FUNC();
   return &TTSOpsBufferHeapTuple;
 }
+
+struct MemScanDesc {
+  TableScanDescData rs_base; // Base class from access/relscan.h.
+
+  // Custom data.
+  uint32 cursor;
+};
 
 TableScanDesc memam_beginscan(
   Relation relation,
@@ -32,9 +82,14 @@ TableScanDesc memam_beginscan(
   uint32 flags
 ) {
   DEBUG_FUNC();
-  TableScanDesc desc = (TableScanDescData*)malloc(sizeof(TableScanDescData));
-  desc->rs_rd = relation;
-  return desc;
+  struct MemScanDesc* scan = (struct MemScanDesc*)malloc(sizeof(struct MemScanDesc));
+  scan->rs_base.rs_rd = relation;
+  scan->rs_base.rs_snapshot = snapshot;
+  scan->rs_base.rs_nkeys = nkeys;
+  scan->rs_base.rs_flags = flags;
+  scan->rs_base.rs_parallel = parallel_scan;
+  scan->cursor = 0;
+  return (TableScanDesc)scan;
 }
 
 void memam_rescan(
@@ -59,7 +114,22 @@ bool memam_getnextslot(
   TupleTableSlot *slot
 ) {
   DEBUG_FUNC();
-  return false;
+  //  backtrace();
+  struct MemScanDesc* mscan = (struct MemScanDesc*)sscan;
+  ExecClearTuple(slot);
+
+  if (mscan->cursor == table->nrows) {
+    fprintf(fd, "done\n");
+    return false;
+  }
+
+  slot->tts_values[0] = Int32GetDatum(table->rows[mscan->cursor].columns[0].value);
+  fprintf(fd, "value: %d\n", DatumGetInt32(slot->tts_values[0]));
+  slot->tts_isnull[0] = false;
+  ExecStoreVirtualTuple(slot);
+  mscan->cursor++;
+  fprintf(fd, "cursor: %d, table rows: %d\n", mscan->cursor, table->nrows);
+  return true;
 }
 
 IndexFetchTableData* memam_index_fetch_begin(Relation rel) {
@@ -80,6 +150,7 @@ bool memam_index_fetch_tuple(
   bool *all_dead
 ) {
   DEBUG_FUNC();
+  return false;
 }
 
 void memam_tuple_insert(
@@ -410,5 +481,25 @@ Datum mem_tableam_handler(PG_FUNCTION_ARGS) {
   fd = fopen("/tmp/pgtam.log", "a");
   setvbuf(fd, NULL, _IONBF, 0);
   fprintf(fd, "\n\nmem_tableam handler loaded\n");
+
+  if (table == NULL) {
+    struct Column row1_column, row2_column;
+    row1_column.value = 319;
+    row2_column.value = 1823;
+
+    struct Row row1, row2;
+    row1.ncolumns = 1;
+    row1.columns = (struct Column*)malloc(sizeof(struct Column) * row1.ncolumns);
+    row1.columns[0] = row1_column;
+    row2.ncolumns = 1;
+    row2.columns = (struct Column*)malloc(sizeof(struct Column) * row2.ncolumns);
+    row2.columns[0] = row2_column;
+
+    table = (struct Table*)malloc(sizeof(struct Table));
+    table->nrows = 2;
+    table->rows = (struct Row*)malloc(sizeof(struct Row) * table->nrows);
+    table->rows[0] = row1;
+    table->rows[1] = row2;
+  }
   PG_RETURN_POINTER(&memam_methods);
 }
