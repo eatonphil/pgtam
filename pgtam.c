@@ -9,8 +9,7 @@
 #include "executor/tuptable.h"
 
 FILE* fd;
-
-PG_MODULE_MAGIC;
+#define DEBUG_FUNC() fprintf(fd, "in %s\n", __func__)
 
 struct Column {
   int value;
@@ -36,11 +35,7 @@ struct Database {
 
 struct Database* database;
 
-const TableAmRoutine memam_methods;
-
-#define DEBUG_FUNC() fprintf(fd, "in %s\n", __func__)
-
-void get_table(struct Table** table, Relation relation) {
+static void get_table(struct Table** table, Relation relation) {
   char* this_name = NameStr(relation->rd_rel->relname);
   for (size_t i = 0; i < database->ntables; i++) {
     if (strcmp(database->tables[i].name, this_name) == 0) {
@@ -50,7 +45,11 @@ void get_table(struct Table** table, Relation relation) {
   }
 }
 
-const TupleTableSlotOps* memam_slot_callbacks(
+PG_MODULE_MAGIC;
+
+const TableAmRoutine memam_methods;
+
+static const TupleTableSlotOps* memam_slot_callbacks(
   Relation relation
 ) {
   DEBUG_FUNC();
@@ -64,7 +63,7 @@ struct MemScanDesc {
   uint32 cursor;
 };
 
-TableScanDesc memam_beginscan(
+static TableScanDesc memam_beginscan(
   Relation relation,
   Snapshot snapshot,
   int nkeys,
@@ -72,8 +71,9 @@ TableScanDesc memam_beginscan(
   ParallelTableScanDesc parallel_scan,
   uint32 flags
 ) {
+  struct MemScanDesc* scan;
   DEBUG_FUNC();
-  struct MemScanDesc* scan = (struct MemScanDesc*)malloc(sizeof(struct MemScanDesc));
+  scan = (struct MemScanDesc*)malloc(sizeof(struct MemScanDesc));
   scan->rs_base.rs_rd = relation;
   scan->rs_base.rs_snapshot = snapshot;
   scan->rs_base.rs_nkeys = nkeys;
@@ -83,7 +83,7 @@ TableScanDesc memam_beginscan(
   return (TableScanDesc)scan;
 }
 
-void memam_rescan(
+static void memam_rescan(
   TableScanDesc sscan,
   struct ScanKeyData *key,
   bool set_params,
@@ -94,21 +94,23 @@ void memam_rescan(
   DEBUG_FUNC();
 }
 
-void memam_endscan(TableScanDesc sscan) {
+static void memam_endscan(TableScanDesc sscan) {
   DEBUG_FUNC();
   free(sscan);
 }
 
-bool memam_getnextslot(
+static bool memam_getnextslot(
   TableScanDesc sscan,
   ScanDirection direction,
   TupleTableSlot *slot
 ) {
+  struct MemScanDesc* mscan = {};
+  struct Table* table = NULL;
   DEBUG_FUNC();
-  struct MemScanDesc* mscan = (struct MemScanDesc*)sscan;
+  
+  mscan = (struct MemScanDesc*)sscan;
   ExecClearTuple(slot);
 
-  struct Table* table = NULL;
   get_table(&table, mscan->rs_base.rs_rd);
   if (table == NULL || mscan->cursor == table->nrows) {
     return false;
@@ -121,16 +123,16 @@ bool memam_getnextslot(
   return true;
 }
 
-IndexFetchTableData* memam_index_fetch_begin(Relation rel) {
+static IndexFetchTableData* memam_index_fetch_begin(Relation rel) {
   DEBUG_FUNC();
   return NULL;
 }
 
-void memam_index_fetch_reset(IndexFetchTableData *scan) {}
+static void memam_index_fetch_reset(IndexFetchTableData *scan) {}
 
-void memam_index_fetch_end(IndexFetchTableData *scan) {}
+static void memam_index_fetch_end(IndexFetchTableData *scan) {}
 
-bool memam_index_fetch_tuple(
+static bool memam_index_fetch_tuple(
   struct IndexFetchTableData *scan,
   ItemPointer tid,
   Snapshot snapshot,
@@ -142,17 +144,20 @@ bool memam_index_fetch_tuple(
   return false;
 }
 
-void memam_tuple_insert(
+static void memam_tuple_insert(
   Relation relation,
   TupleTableSlot *slot,
   CommandId cid,
   int options,
   BulkInsertState bistate
 ) {
-  DEBUG_FUNC();
   TupleDesc desc = RelationGetDescr(relation);
-
   struct Table* table = NULL;
+  struct Column column = {};
+  struct Row row = {};
+
+  DEBUG_FUNC();
+
   get_table(&table, relation);
   if (table == NULL) {
     elog(ERROR, "table not found");
@@ -163,9 +168,6 @@ void memam_tuple_insert(
     elog(ERROR, "cannot insert more rows");
     return;
   }
-
-  struct Column column = {0};
-  struct Row row = {0};
 
   row.ncolumns = desc->natts;
   Assert(slot->tts_nvalid == row.ncolumns);
@@ -182,7 +184,7 @@ void memam_tuple_insert(
   table->nrows++;
 }
 
-void memam_tuple_insert_speculative(
+static void memam_tuple_insert_speculative(
   Relation relation,
   TupleTableSlot *slot,
   CommandId cid,
@@ -192,7 +194,7 @@ void memam_tuple_insert_speculative(
   DEBUG_FUNC();
 }
 
-void memam_tuple_complete_speculative(
+static void memam_tuple_complete_speculative(
   Relation relation,
   TupleTableSlot *slot,
   uint32 specToken,
@@ -200,7 +202,7 @@ void memam_tuple_complete_speculative(
   DEBUG_FUNC();
 }
 
-void memam_multi_insert(
+static void memam_multi_insert(
   Relation relation,
   TupleTableSlot **slots,
   int ntuples,
@@ -211,7 +213,7 @@ void memam_multi_insert(
   DEBUG_FUNC();
 }
 
-TM_Result memam_tuple_delete(
+static TM_Result memam_tuple_delete(
   Relation relation,
   ItemPointer tid,
   CommandId cid,
@@ -221,12 +223,12 @@ TM_Result memam_tuple_delete(
   TM_FailureData *tmfd,
   bool changingPart
 ) {
+  TM_Result result = {};
   DEBUG_FUNC();
-  TM_Result result;
   return result;
 }
 
-TM_Result memam_tuple_update(
+static TM_Result memam_tuple_update(
   Relation relation,
   ItemPointer otid,
   TupleTableSlot *slot,
@@ -238,12 +240,12 @@ TM_Result memam_tuple_update(
   LockTupleMode *lockmode,
   TU_UpdateIndexes *update_indexes
 ) {
+  TM_Result result = {};
   DEBUG_FUNC();
-  TM_Result result;
   return result;
 }
 
-TM_Result memam_tuple_lock(
+static TM_Result memam_tuple_lock(
   Relation relation,
   ItemPointer tid,
   Snapshot snapshot,
@@ -254,12 +256,12 @@ TM_Result memam_tuple_lock(
   uint8 flags,
   TM_FailureData *tmfd)
 {
+  TM_Result result = {};
   DEBUG_FUNC();
-  TM_Result result;
   return result;
 }
 
-bool memam_fetch_row_version(
+static bool memam_fetch_row_version(
   Relation relation,
   ItemPointer tid,
   Snapshot snapshot,
@@ -269,19 +271,19 @@ bool memam_fetch_row_version(
   return false;
 }
 
-void memam_get_latest_tid(
+static void memam_get_latest_tid(
   TableScanDesc sscan,
   ItemPointer tid
 ) {
   DEBUG_FUNC();
 }
 
-bool memam_tuple_tid_valid(TableScanDesc scan, ItemPointer tid) {
+static bool memam_tuple_tid_valid(TableScanDesc scan, ItemPointer tid) {
   DEBUG_FUNC();
   return false;
 }
 
-bool memam_tuple_satisfies_snapshot(
+static bool memam_tuple_satisfies_snapshot(
   Relation rel,
   TupleTableSlot *slot,
   Snapshot snapshot
@@ -290,16 +292,16 @@ bool memam_tuple_satisfies_snapshot(
   return false;
 }
 
-TransactionId memam_index_delete_tuples(
+static TransactionId memam_index_delete_tuples(
   Relation rel,
   TM_IndexDeleteOp *delstate
 ) {
+  TransactionId id = {};
   DEBUG_FUNC();
-  TransactionId id;
   return id;
 }
 
-void memam_relation_set_new_filelocator(
+static void memam_relation_set_new_filelocator(
   Relation rel,
   const RelFileLocator *newrlocator,
   char persistence,
@@ -317,20 +319,20 @@ void memam_relation_set_new_filelocator(
   DEBUG_FUNC();
 }
 
-void memam_relation_nontransactional_truncate(
+static void memam_relation_nontransactional_truncate(
   Relation rel
 ) {
   DEBUG_FUNC();
 }
 
-void memam_relation_copy_data(
+static void memam_relation_copy_data(
   Relation rel,
   const RelFileLocator *newrlocator
 ) {
   DEBUG_FUNC();
 }
 
-void memam_relation_copy_for_cluster(
+static void memam_relation_copy_for_cluster(
   Relation OldHeap,
   Relation NewHeap,
   Relation OldIndex,
@@ -345,7 +347,7 @@ void memam_relation_copy_for_cluster(
   DEBUG_FUNC();
 }
 
-void memam_vacuum_rel(
+static void memam_vacuum_rel(
   Relation rel,
   VacuumParams *params,
   BufferAccessStrategy bstrategy
@@ -353,7 +355,7 @@ void memam_vacuum_rel(
   DEBUG_FUNC();
 }
 
-bool memam_scan_analyze_next_block(
+static bool memam_scan_analyze_next_block(
   TableScanDesc scan,
   BlockNumber blockno,
   BufferAccessStrategy bstrategy
@@ -362,7 +364,7 @@ bool memam_scan_analyze_next_block(
   return false;
 }
 
-bool memam_scan_analyze_next_tuple(
+static bool memam_scan_analyze_next_tuple(
   TableScanDesc scan,
   TransactionId OldestXmin,
   double *liverows,
@@ -373,7 +375,7 @@ bool memam_scan_analyze_next_tuple(
   return false;
 }
 
-double memam_index_build_range_scan(
+static double memam_index_build_range_scan(
   Relation heapRelation,
   Relation indexRelation,
   IndexInfo *indexInfo,
@@ -390,7 +392,7 @@ double memam_index_build_range_scan(
   return 0;
 }
 
-void memam_index_validate_scan(
+static void memam_index_validate_scan(
   Relation heapRelation,
   Relation indexRelation,
   IndexInfo *indexInfo,
@@ -400,18 +402,18 @@ void memam_index_validate_scan(
   DEBUG_FUNC();
 }
 
-bool memam_relation_needs_toast_table(Relation rel) {
+static bool memam_relation_needs_toast_table(Relation rel) {
   DEBUG_FUNC();
   return false;
 }
 
-Oid memam_relation_toast_am(Relation rel) {
+static Oid memam_relation_toast_am(Relation rel) {
+  Oid oid = {};
   DEBUG_FUNC();
-  Oid oid;
   return oid;
 }
 
-void memam_fetch_toast_slice(
+static void memam_fetch_toast_slice(
   Relation toastrel,
   Oid valueid,
   int32 attrsize,
@@ -422,7 +424,7 @@ void memam_fetch_toast_slice(
   DEBUG_FUNC();
 }
 
-void memam_estimate_rel_size(
+static void memam_estimate_rel_size(
   Relation rel,
   int32 *attr_widths,
   BlockNumber *pages,
@@ -432,14 +434,14 @@ void memam_estimate_rel_size(
   DEBUG_FUNC();
 }
 
-bool memam_scan_sample_next_block(
+static bool memam_scan_sample_next_block(
   TableScanDesc scan, SampleScanState *scanstate
 ) {
   DEBUG_FUNC();
   return false;
 }
 
-bool memam_scan_sample_next_tuple(
+static bool memam_scan_sample_next_tuple(
   TableScanDesc scan,
   SampleScanState *scanstate,
   TupleTableSlot *slot
