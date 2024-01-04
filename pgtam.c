@@ -104,7 +104,7 @@ static bool memam_getnextslot(
   ScanDirection direction,
   TupleTableSlot *slot
 ) {
-  struct MemScanDesc* mscan = {};
+  struct MemScanDesc* mscan = NULL;
   struct Table* table = NULL;
   DEBUG_FUNC();
   
@@ -223,7 +223,7 @@ static TM_Result memam_tuple_delete(
   TM_FailureData *tmfd,
   bool changingPart
 ) {
-  TM_Result result = {};
+  TM_Result result = 0;
   DEBUG_FUNC();
   return result;
 }
@@ -296,7 +296,7 @@ static TransactionId memam_index_delete_tuples(
   Relation rel,
   TM_IndexDeleteOp *delstate
 ) {
-  TransactionId id = {};
+  TransactionId id = 0;
   DEBUG_FUNC();
   return id;
 }
@@ -408,7 +408,7 @@ static bool memam_relation_needs_toast_table(Relation rel) {
 }
 
 static Oid memam_relation_toast_am(Relation rel) {
-  Oid oid = {};
+  Oid oid = 0;
   DEBUG_FUNC();
   return oid;
 }
