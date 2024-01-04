@@ -240,7 +240,7 @@ static TM_Result memam_tuple_update(
   LockTupleMode *lockmode,
   TU_UpdateIndexes *update_indexes
 ) {
-  TM_Result result = {};
+  TM_Result result = 0;
   DEBUG_FUNC();
   return result;
 }
@@ -256,7 +256,7 @@ static TM_Result memam_tuple_lock(
   uint8 flags,
   TM_FailureData *tmfd)
 {
-  TM_Result result = {};
+  TM_Result result = 0;
   DEBUG_FUNC();
   return result;
 }
